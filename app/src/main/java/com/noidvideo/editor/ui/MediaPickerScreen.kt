@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.noidvideo.editor.ui.theme.NoidBlack
 import com.noidvideo.editor.ui.theme.NoidGreen
 import com.noidvideo.editor.ui.theme.NoidText
@@ -30,7 +29,7 @@ import com.noidvideo.editor.ui.theme.NoidTextDim
 fun MediaPickerScreen(
     onMediaSelected: () -> Unit,
     onBack: () -> Unit,
-    viewModel: EditorViewModel = viewModel()
+    viewModel: EditorViewModel
 ) {
     val videoPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetMultipleContents()

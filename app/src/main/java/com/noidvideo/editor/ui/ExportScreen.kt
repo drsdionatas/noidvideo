@@ -39,6 +39,7 @@ import com.noidvideo.editor.ui.theme.NoidTextDim
 @Composable
 fun ExportScreen(
     onBack: () -> Unit,
+    editorViewModel: EditorViewModel,
     viewModel: ExportViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -133,7 +134,7 @@ fun ExportScreen(
             }
         } else {
             Button(
-                onClick = { viewModel.start(com.noidvideo.editor.engine.Timeline()) },
+                onClick = { viewModel.start(editorViewModel.state.value.timeline) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = NoidGreen,

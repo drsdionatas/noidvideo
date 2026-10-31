@@ -32,7 +32,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.noidvideo.editor.ui.theme.NoidBlack
 import com.noidvideo.editor.ui.theme.NoidGreen
 import com.noidvideo.editor.ui.theme.NoidSurface
@@ -44,7 +43,7 @@ import com.noidvideo.editor.ui.theme.NoidTextDim
 fun EditorScreen(
     onExport: () -> Unit,
     onBack: () -> Unit,
-    viewModel: EditorViewModel = viewModel()
+    viewModel: EditorViewModel
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
