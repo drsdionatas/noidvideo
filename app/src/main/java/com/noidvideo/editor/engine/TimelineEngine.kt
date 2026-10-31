@@ -7,10 +7,6 @@ import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.Effects
 import com.noidvideo.editor.beatsync.BeatMap
 
-/**
- * Converte a timeline em Composition do Media3.
- * Vídeo = sequência principal. Áudio do usuário = sequência paralela.
- */
 class TimelineEngine {
 
     fun buildComposition(timeline: Timeline): Composition {
@@ -22,9 +18,7 @@ class TimelineEngine {
             sequences.add(EditedMediaItemSequence.Builder(audioItems).build())
         }
 
-        return Composition.Builder(sequences)
-            .setBackgroundColor(timeline.backgroundColor)
-            .build()
+        return Composition.Builder(sequences).build()
     }
 
     private fun toEditedItem(clip: TimelineClip): EditedMediaItem {
@@ -39,7 +33,6 @@ class TimelineEngine {
             .build()
 
         return EditedMediaItem.Builder(mediaItem)
-            .setSpeed(clip.speed)
             .setEffects(Effects(emptyList(), emptyList()))
             .build()
     }
@@ -65,10 +58,6 @@ class TimelineEngine {
         return timeline.copy(clips = list)
     }
 
-    /**
-     * Reposiciona e corta os clipes de vídeo nos pontos de batida.
-     * É o coração da edição automática.
-     */
     fun applyBeatSync(timeline: Timeline, beatMap: BeatMap): Timeline {
         val videos = timeline.videoClips
         if (videos.isEmpty() || beatMap.beatTimesMs.isEmpty()) return timeline
