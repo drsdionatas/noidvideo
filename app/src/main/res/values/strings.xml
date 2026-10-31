@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NoidVideo</string>
+    <string name="editor_title">Editor</string>
+    <string name="export">Exportar</string>
+    <string name="split">Dividir</string>
+    <string name="speed">Velocidade</string>
+    <string name="filter">Filtro</string>
+    <string name="transition">Transição</string>
+    <string name="audio">Áudio</string>
+    <string name="beat_sync">Na batida</string>
+    <string name="select_audio">Selecionar áudio</string>
+    <string name="bpm_detected">BPM detectado: %1$d</string>
+    <string name="exporting">Exportando…</string>
+    <string name="export_done">Exportação concluída</string>
+    <string name="projects">Projetos</string>
+</resources>

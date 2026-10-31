@@ -1,0 +1,12 @@
+# Media3
+-keep class androidx.media3.** { *; }
+-dontwarn androidx.media3.**
+
+# Room
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
+-dontwarn androidx.room.paging.**
+
+# Kotlin metadata
+-keepattributes *Annotation*, InnerClasses
+-dontnote kotlinx.serialization.**
