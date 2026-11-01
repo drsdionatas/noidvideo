@@ -10,7 +10,6 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.effect.Presentation
-import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
@@ -73,8 +72,16 @@ class VideoExporter(private val context: Context) {
     private fun buildComposition(timeline: Timeline, config: ExportConfig): Composition {
         val videoDurationMs = timeline.videoClips.sumOf { it.trimmedDurationMs }
 
+        var accUs = 0L
         val videoItems = timeline.videoClips.map { clip ->
-            toEditedItem(clip, config, isVideo = true)
+            val item = toEditedItem(
+                clip = clip,
+                config = config,
+                isVideo = true,
+                clipStartUs = accUs
+            )
+            accUs += clip.trimmedDurationMs * 1000L
+            item
         }
         val sequences = mutableListOf(EditedMediaItemSequence.Builder(videoItems).build())
 
@@ -98,7 +105,8 @@ class VideoExporter(private val context: Context) {
         clip: TimelineClip,
         config: ExportConfig,
         isVideo: Boolean,
-        maxDurationMs: Long? = null
+        maxDurationMs: Long? = null,
+        clipStartUs: Long = 0L
     ): EditedMediaItem {
         val endMs = if (maxDurationMs != null) {
             clip.startInSourceMs + maxDurationMs
@@ -120,6 +128,10 @@ class VideoExporter(private val context: Context) {
         val audioEffects = mutableListOf<AudioProcessor>()
 
         if (isVideo) {
+            // Zoom Punch animado: precisa vir ANTES do Presentation
+            if (clip.transition == TransitionKind.CUT_ON_BEAT) {
+                videoEffects.add(PunchZoomEffect(clipStartUs = clipStartUs))
+            }
             // Aplica resolução/proporção escolhida no export
             videoEffects.add(
                 Presentation.createForWidthAndHeight(
@@ -128,14 +140,6 @@ class VideoExporter(private val context: Context) {
                     Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP
                 )
             )
-            // Zoom Punch: impacto de corte esportivo
-            if (clip.transition == TransitionKind.CUT_ON_BEAT) {
-                videoEffects.add(
-                    ScaleAndRotateTransformation.Builder()
-                        .setScale(1.12f, 1.12f)
-                        .build()
-                )
-            }
         }
 
         // Volume por clipe (GainProcessor)

@@ -1,5 +1,8 @@
 package com.noidvideo.editor.ui
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -57,6 +60,15 @@ fun EditorScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showFilters by remember { mutableStateOf(false) }
     var showTransitions by remember { mutableStateOf(false) }
+
+    val audioPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            viewModel.addAudio(uri)
+            viewModel.applyBeatSync(uri)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -234,6 +246,7 @@ fun EditorScreen(
                 active = showFilters
             ) { showFilters = !showFilters }
             ToolButton(label = "Trans.", active = showTransitions) { showTransitions = !showTransitions }
+            ToolButton("Música") { audioPicker.launch("audio/*") }
         }
 
         Spacer(Modifier.height(12.dp))
