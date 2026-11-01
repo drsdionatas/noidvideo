@@ -117,8 +117,16 @@ fun EditorScreen(
                     .fillMaxSize()
                     .padding(12.dp)
             ) {
-                Text("Timeline", color = NoidTextDim, fontSize = 11.sp)
-                Spacer(Modifier.height(8.dp))
+                val totalMs = state.timeline.videoClips.sumOf { it.trimmedDurationMs }
+                WaveformTimeline(
+                    waveform = state.waveform,
+                    beatTimesMs = state.beatMap?.beatTimesMs ?: emptyList(),
+                    totalDurationMs = totalMs,
+                    playheadMs = state.playheadMs,
+                    onSeek = { viewModel.seekTo(it) }
+                )
+
+                Spacer(Modifier.height(10.dp))
 
                 TrackRow(
                     label = "VÍDEO",

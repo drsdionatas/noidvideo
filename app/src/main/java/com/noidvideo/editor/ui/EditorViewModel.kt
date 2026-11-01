@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.noidvideo.editor.beatsync.BeatDetector
+import com.noidvideo.editor.beatsync.WaveformExtractor
 import com.noidvideo.editor.beatsync.BeatMap
 import com.noidvideo.editor.engine.FilterPreset
 import com.noidvideo.editor.engine.Timeline
@@ -28,6 +29,7 @@ data class EditorUiState(
     val playheadMs: Long = 0L,
     val selectedClipId: String? = null,
     val beatMap: BeatMap? = null,
+    val waveform: FloatArray = FloatArray(0),
     val beatSyncBusy: Boolean = false,
     val isExporting: Boolean = false,
     val message: String? = null,
@@ -161,6 +163,8 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             _state.update { it.copy(beatSyncBusy = true, message = null) }
             val map = BeatDetector.analyze(getApplication(), audioUri)
+            val wave = WaveformExtractor.extract(getApplication(), audioUri)
+            _state.update { it.copy(waveform = wave) }
             if (map == null) {
                 _state.update { it.copy(beatSyncBusy = false, message = "Não foi possível detectar a batida") }
                 return@launch
@@ -178,4 +182,8 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun clearMessage() = _state.update { it.copy(message = null) }
+
+    fun seekTo(ms: Long) {
+        _state.update { it.copy(playheadMs = ms.coerceAtLeast(0L)) }
+    }
 }
