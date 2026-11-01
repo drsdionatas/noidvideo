@@ -56,6 +56,7 @@ fun EditorScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showFilters by remember { mutableStateOf(false) }
+    var showTransitions by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -204,6 +205,24 @@ fun EditorScreen(
             Spacer(Modifier.height(6.dp))
         }
 
+        if (showTransitions) {
+            val selT = state.timeline.clips.firstOrNull { it.id == state.selectedClipId }
+            if (selT == null) {
+                Text(
+                    text = "Selecione um clipe primeiro",
+                    color = NoidTextDim,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            } else {
+                TransitionGallery(
+                    selected = selT.transition,
+                    onSelect = { viewModel.setTransition(it) }
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
@@ -214,7 +233,7 @@ fun EditorScreen(
                 label = "Filtro",
                 active = showFilters
             ) { showFilters = !showFilters }
-            ToolButton("Trans.") { viewModel.cycleTransition() }
+            ToolButton(label = "Trans.", active = showTransitions) { showTransitions = !showTransitions }
         }
 
         Spacer(Modifier.height(12.dp))

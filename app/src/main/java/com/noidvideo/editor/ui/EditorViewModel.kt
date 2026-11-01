@@ -124,6 +124,16 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun setTransition(kind: TransitionKind) {
+        val id = _state.value.selectedClipId ?: return
+        _state.update { s ->
+            val clips = s.timeline.clips.map { clip ->
+                if (clip.id != id) clip else clip.copy(transition = kind)
+            }
+            s.copy(timeline = s.timeline.copy(clips = clips))
+        }
+    }
+
     fun cycleTransition() {
         val id = _state.value.selectedClipId ?: return
         val kinds = TransitionKind.entries
