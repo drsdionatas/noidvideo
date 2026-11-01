@@ -128,9 +128,19 @@ class VideoExporter(private val context: Context) {
         val audioEffects = mutableListOf<AudioProcessor>()
 
         if (isVideo) {
-            // Zoom Punch animado: precisa vir ANTES do Presentation
-            if (clip.transition == TransitionKind.CUT_ON_BEAT) {
-                videoEffects.add(PunchZoomEffect(clipStartUs = clipStartUs))
+            // Efeitos de transição — todos rodam na GPU, antes do Presentation
+            when (clip.transition) {
+                TransitionKind.CUT_ON_BEAT ->
+                    videoEffects.add(PunchZoomEffect(clipStartUs = clipStartUs))
+                TransitionKind.GLITCH_RGB ->
+                    videoEffects.add(GlitchRgbEffect(clipStartUs = clipStartUs))
+                TransitionKind.SHAKE ->
+                    videoEffects.add(ShakeEffect(clipStartUs = clipStartUs))
+                TransitionKind.ZOOM_BLUR ->
+                    videoEffects.add(ZoomBlurEffect(clipStartUs = clipStartUs))
+                TransitionKind.FLASH ->
+                    videoEffects.add(FlashEffect(clipStartUs = clipStartUs))
+                TransitionKind.NONE -> Unit
             }
             // Aplica resolução/proporção escolhida no export
             videoEffects.add(

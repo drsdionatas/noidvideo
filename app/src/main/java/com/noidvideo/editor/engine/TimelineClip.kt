@@ -4,7 +4,7 @@ import android.net.Uri
 
 enum class TrackKind { VIDEO, AUDIO }
 
-enum class TransitionKind { NONE, CUT_ON_BEAT, CROSSFADE, FADE_BLACK, LIGHT_LEAK }
+enum class TransitionKind { NONE, CUT_ON_BEAT, GLITCH_RGB, SHAKE, ZOOM_BLUR, FLASH }
 
 enum class FilterPreset { NONE, CINEMATIC, VIVID, WARM, COOL, BW, VINTAGE, SNOW, WATER }
 

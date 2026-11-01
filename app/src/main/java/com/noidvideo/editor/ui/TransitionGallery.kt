@@ -148,7 +148,7 @@ private fun TransitionPreview(kind: TransitionKind) {
             }
         }
 
-        TransitionKind.CROSSFADE -> {
+        TransitionKind.GLITCH_RGB -> {
             Box(Modifier.fillMaxSize().background(colorA)) {
                 Box(
                     Modifier
@@ -159,7 +159,7 @@ private fun TransitionPreview(kind: TransitionKind) {
             }
         }
 
-        TransitionKind.FADE_BLACK -> {
+        TransitionKind.SHAKE -> {
             Box(Modifier.fillMaxSize().background(colorA)) {
                 Box(
                     Modifier
@@ -179,7 +179,7 @@ private fun TransitionPreview(kind: TransitionKind) {
             )
         }
 
-        TransitionKind.LIGHT_LEAK -> {
+        TransitionKind.ZOOM_BLUR -> {
             Box(Modifier.fillMaxSize().background(colorA)) {
                 Box(
                     Modifier
@@ -194,13 +194,25 @@ private fun TransitionPreview(kind: TransitionKind) {
                 )
             }
         }
+
+        TransitionKind.FLASH -> {
+            Box(Modifier.fillMaxSize().background(colorA)) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .alpha(if (progress < 0.3f) 1f - progress / 0.3f else 0f)
+                        .background(Color.White)
+                )
+            }
+        }
     }
 }
 
 fun transitionLabel(kind: TransitionKind): String = when (kind) {
     TransitionKind.NONE -> "Corte"
     TransitionKind.CUT_ON_BEAT -> "No Beat"
-    TransitionKind.CROSSFADE -> "Crossfade"
-    TransitionKind.FADE_BLACK -> "Fade Preto"
-    TransitionKind.LIGHT_LEAK -> "Light Leak"
+    TransitionKind.GLITCH_RGB -> "Glitch"
+    TransitionKind.SHAKE -> "Tremor"
+    TransitionKind.ZOOM_BLUR -> "Zoom Whip"
+    TransitionKind.FLASH -> "Flash"
 }

@@ -18,8 +18,9 @@ object TransitionEngine {
 
     fun durationFor(kind: TransitionKind, bpm: Float): Long = when (kind) {
         TransitionKind.NONE, TransitionKind.CUT_ON_BEAT -> 0L
-        TransitionKind.CROSSFADE -> crossfadeDurationMs(bpm)
-        TransitionKind.FADE_BLACK -> fadeDurationMs(bpm)
-        TransitionKind.LIGHT_LEAK -> crossfadeDurationMs(bpm) * 2
+        TransitionKind.GLITCH_RGB -> 220L
+        TransitionKind.SHAKE -> 300L
+        TransitionKind.ZOOM_BLUR -> 280L
+        TransitionKind.FLASH -> 120L
     }
 }
