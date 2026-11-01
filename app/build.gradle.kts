@@ -62,12 +62,12 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.navigation:navigation-compose:2.8.4")
 
-    implementation("androidx.media3:media3-transformer:1.5.0")
-    implementation("androidx.media3:media3-effect:1.5.0")
-    implementation("androidx.media3:media3-common:1.5.0")
-    implementation("androidx.media3:media3-exoplayer:1.5.0")
-    implementation("androidx.media3:media3-ui:1.5.0")
-    implementation("androidx.media3:media3-decoder:1.5.0")
+    implementation("androidx.media3:media3-transformer:1.6.1")
+    implementation("androidx.media3:media3-effect:1.6.1")
+    implementation("androidx.media3:media3-common:1.6.1")
+    implementation("androidx.media3:media3-exoplayer:1.6.1")
+    implementation("androidx.media3:media3-ui:1.6.1")
+    implementation("androidx.media3:media3-decoder:1.6.1")
 
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
