@@ -124,9 +124,14 @@ class VideoExporter(private val context: Context) {
                 Presentation.createForWidthAndHeight(
                     config.resolution.width,
                     config.resolution.height,
-                    Presentation.LAYOUT_SCALE_TO_FIT
+                    Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP
                 )
             )
+        }
+
+        // Volume por clipe (GainProcessor)
+        if (!isVideo && clip.volume != 1f) {
+            audioEffects.add(VolumeAudioProcessor(clip.volume))
         }
 
         // Effects(audioProcessors, videoEffects) — áudio PRIMEIRO

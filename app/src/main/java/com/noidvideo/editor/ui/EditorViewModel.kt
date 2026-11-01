@@ -136,6 +136,17 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun setVolume(value: Float) {
+        val id = _state.value.selectedClipId ?: return
+        val v = value.coerceIn(0f, 2f)
+        _state.update { s ->
+            val clips = s.timeline.clips.map { clip ->
+                if (clip.id != id) clip else clip.copy(volume = v)
+            }
+            s.copy(timeline = s.timeline.copy(clips = clips))
+        }
+    }
+
     fun applyBeatSync(audioUri: Uri) {
         viewModelScope.launch {
             _state.update { it.copy(beatSyncBusy = true, message = null) }

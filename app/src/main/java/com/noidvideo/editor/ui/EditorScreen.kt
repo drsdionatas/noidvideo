@@ -23,7 +23,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.Slider
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -176,6 +178,30 @@ fun EditorScreen(
                 )
                 Spacer(Modifier.height(8.dp))
             }
+        }
+
+        val selClip = state.timeline.clips.firstOrNull { it.id == state.selectedClipId }
+        if (selClip != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Vol", color = NoidTextDim, fontSize = 10.sp)
+                Spacer(Modifier.width(8.dp))
+                Slider(
+                    value = selClip.volume,
+                    onValueChange = { viewModel.setVolume(it) },
+                    valueRange = 0f..2f,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "${(selClip.volume * 100).toInt()}%",
+                    color = NoidText,
+                    fontSize = 10.sp
+                )
+            }
+            Spacer(Modifier.height(6.dp))
         }
 
         Row(
