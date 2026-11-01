@@ -7,17 +7,19 @@ import android.media.MediaFormat
 import android.net.Uri
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import kotlin.math.abs
 import kotlin.math.sqrt
 
 /**
  * Extrai a forma de onda (waveform) de um arquivo de áudio usando RMS.
- * RMS = Root Mean Square, a energia real do sinal — não o pico.
- * Retorna amplitudes normalizadas entre 0f e 1f.
+ *
+ * Estratégia: acumula RMS em janelas fixas de ~20ms durante a decodificação
+ * (memória constante, independente da duração do áudio) e depois reamostra
+ * para o número de barras desejado.
  */
 object WaveformExtractor {
 
     private const val TARGET_SAMPLES = 300
+    private const val WINDOW_MS = 20
 
     fun extract(context: Context, uri: Uri, targetSamples: Int = TARGET_SAMPLES): FloatArray {
         val extractor = MediaExtractor()
@@ -39,16 +41,20 @@ object WaveformExtractor {
             }
             if (trackIndex < 0 || format == null) return FloatArray(0)
 
+            val sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+            val channelCount = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+            val windowSamples = (sampleRate * WINDOW_MS / 1000).coerceAtLeast(1)
+
             extractor.selectTrack(trackIndex)
             val mime = format.getString(MediaFormat.KEY_MIME) ?: return FloatArray(0)
             val codec = MediaCodec.createDecoderByType(mime)
             codec.configure(format, null, null, 0)
             codec.start()
 
-            // Acumula soma de quadrados por bucket (RMS incremental)
-            val sumSquares = DoubleArray(targetSamples)
-            val counts = IntArray(targetSamples)
-            var totalSamples = 0L
+            // RMS por janela fixa — memória constante
+            val windows = ArrayList<Float>(1024)
+            var windowSumSq = 0.0
+            var windowCount = 0
 
             val info = MediaCodec.BufferInfo()
             var sawInputEOS = false
@@ -77,14 +83,18 @@ object WaveformExtractor {
                     val shorts = ShortArray(info.size / 2)
                     outBuf.asShortBuffer().get(shorts)
 
-                    for (s in shorts) {
-                        val norm = s.toDouble() / 32768.0
-                        // Bucket proporcional ao total de amostras lidas
-                        val bucket = ((totalSamples * targetSamples) / (totalSamples + shorts.size + 1)).toInt()
-                            .coerceIn(0, targetSamples - 1)
-                        sumSquares[bucket] += norm * norm
-                        counts[bucket]++
-                        totalSamples++
+                    // Percorre amostras; a cada windowSamples fecha uma janela
+                    var i = 0
+                    while (i < shorts.size) {
+                        val norm = shorts[i].toDouble() / 32768.0
+                        windowSumSq += norm * norm
+                        windowCount++
+                        if (windowCount >= windowSamples) {
+                            windows.add(sqrt(windowSumSq / windowCount).toFloat())
+                            windowSumSq = 0.0
+                            windowCount = 0
+                        }
+                        i += channelCount.coerceAtLeast(1)
                     }
 
                     codec.releaseOutputBuffer(outIdx, false)
@@ -94,15 +104,25 @@ object WaveformExtractor {
                 }
             }
 
+            // Fecha a última janela parcial
+            if (windowCount > 0) {
+                windows.add(sqrt(windowSumSq / windowCount).toFloat())
+            }
+
             codec.stop()
             codec.release()
 
-            // RMS por bucket
+            if (windows.isEmpty()) return FloatArray(0)
+
+            // Reamostra para targetSamples pegando o RMS médio de cada bucket
             val result = FloatArray(targetSamples)
+            val bucketSize = windows.size.toFloat() / targetSamples
             for (i in 0 until targetSamples) {
-                result[i] = if (counts[i] > 0) {
-                    sqrt(sumSquares[i] / counts[i]).toFloat()
-                } else 0f
+                val start = (i * bucketSize).toInt().coerceIn(0, windows.size - 1)
+                val end = ((i + 1) * bucketSize).toInt().coerceIn(start + 1, windows.size)
+                var sum = 0f
+                for (j in start until end) sum += windows[j]
+                result[i] = sum / (end - start)
             }
 
             // Normaliza para 0..1
