@@ -8,14 +8,16 @@ import android.net.Uri
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.abs
+import kotlin.math.sqrt
 
 /**
- * Extrai a forma de onda (waveform) de um arquivo de áudio.
- * Retorna uma lista de amplitudes normalizadas entre 0f e 1f.
+ * Extrai a forma de onda (waveform) de um arquivo de áudio usando RMS.
+ * RMS = Root Mean Square, a energia real do sinal — não o pico.
+ * Retorna amplitudes normalizadas entre 0f e 1f.
  */
 object WaveformExtractor {
 
-    private const val TARGET_SAMPLES = 240
+    private const val TARGET_SAMPLES = 300
 
     fun extract(context: Context, uri: Uri, targetSamples: Int = TARGET_SAMPLES): FloatArray {
         val extractor = MediaExtractor()
@@ -43,7 +45,11 @@ object WaveformExtractor {
             codec.configure(format, null, null, 0)
             codec.start()
 
-            val amplitudes = ArrayList<Float>(targetSamples * 4)
+            // Acumula soma de quadrados por bucket (RMS incremental)
+            val sumSquares = DoubleArray(targetSamples)
+            val counts = IntArray(targetSamples)
+            var totalSamples = 0L
+
             val info = MediaCodec.BufferInfo()
             var sawInputEOS = false
             var sawOutputEOS = false
@@ -70,54 +76,39 @@ object WaveformExtractor {
                     outBuf.order(ByteOrder.LITTLE_ENDIAN)
                     val shorts = ShortArray(info.size / 2)
                     outBuf.asShortBuffer().get(shorts)
+
                     for (s in shorts) {
-                        val amp = abs(s.toInt()) / 32768f
-                        if (amplitudes.size < targetSamples * 8) {
-                            amplitudes.add(amp)
-                        } else {
-                            // reduz pela metade quando enche
-                            val half = ArrayList<Float>(targetSamples * 4)
-                            var i = 0
-                            while (i < amplitudes.size - 1) {
-                                half.add(maxOf(amplitudes[i], amplitudes[i + 1]))
-                                i += 2
-                            }
-                            amplitudes.clear()
-                            amplitudes.addAll(half)
-                            amplitudes.add(amp)
-                        }
+                        val norm = s.toDouble() / 32768.0
+                        // Bucket proporcional ao total de amostras lidas
+                        val bucket = ((totalSamples * targetSamples) / (totalSamples + shorts.size + 1)).toInt()
+                            .coerceIn(0, targetSamples - 1)
+                        sumSquares[bucket] += norm * norm
+                        counts[bucket]++
+                        totalSamples++
                     }
+
                     codec.releaseOutputBuffer(outIdx, false)
                     if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) {
                         sawOutputEOS = true
                     }
-                } else if (outIdx == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                    // ignora
                 }
             }
 
             codec.stop()
             codec.release()
 
-            if (amplitudes.isEmpty()) return FloatArray(0)
-
-            // Reduz para targetSamples pegando o pico de cada bucket
-            val bucketSize = (amplitudes.size / targetSamples).coerceAtLeast(1)
+            // RMS por bucket
             val result = FloatArray(targetSamples)
             for (i in 0 until targetSamples) {
-                val start = i * bucketSize
-                val end = minOf(start + bucketSize, amplitudes.size)
-                var peak = 0f
-                for (j in start until end) {
-                    if (amplitudes[j] > peak) peak = amplitudes[j]
-                }
-                result[i] = peak
+                result[i] = if (counts[i] > 0) {
+                    sqrt(sumSquares[i] / counts[i]).toFloat()
+                } else 0f
             }
 
             // Normaliza para 0..1
-            val max = result.maxOrNull() ?: 1f
+            val max = result.maxOrNull() ?: 0f
             if (max > 0f) {
-                for (i in result.indices) result[i] /= max
+                for (i in result.indices) result[i] = (result[i] / max).coerceIn(0f, 1f)
             }
             return result
         } catch (e: Exception) {

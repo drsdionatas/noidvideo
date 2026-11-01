@@ -7,23 +7,25 @@ import androidx.media3.effect.MatrixTransformation
 import kotlin.math.sin
 
 /**
- * Shake: tremor de câmera nos primeiros 300ms do clipe.
- * Simula impacto de batida forte. Roda na GPU.
+ * Shake: tremor contínuo ao longo de todo o clipe.
+ * Frequência alta, amplitude moderada — sensação de câmera na mão.
  */
 @UnstableApi
 class ShakeEffect(
     private val clipStartUs: Long,
-    private val durationMs: Long = 300L,
-    private val amplitudePx: Float = 18f
+    private val clipDurationMs: Long,
+    private val amplitudePx: Float = 12f
 ) : MatrixTransformation {
 
     override fun getMatrix(presentationTimeUs: Long): Matrix {
         val elapsedMs = (presentationTimeUs - clipStartUs) / 1000f
-        val t = (elapsedMs / durationMs).coerceIn(0f, 1f)
-        val decay = (1f - t) * (1f - t)
-        // Frequência alta = tremor rápido
-        val dx = sin(elapsedMs * 0.09f) * amplitudePx * decay
-        val dy = sin(elapsedMs * 0.13f) * amplitudePx * decay * 0.6f
+        if (elapsedMs < 0f || elapsedMs > clipDurationMs) {
+            return Matrix()
+        }
+
+        // Tremor contínuo com frequências diferentes em X e Y
+        val dx = sin(elapsedMs * 0.08f) * amplitudePx
+        val dy = sin(elapsedMs * 0.11f) * amplitudePx * 0.7f
 
         return Matrix().apply {
             setTranslate(dx, dy)

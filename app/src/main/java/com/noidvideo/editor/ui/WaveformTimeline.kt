@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,19 +23,19 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.noidvideo.editor.engine.TimelineClip
 import com.noidvideo.editor.ui.theme.NoidGreen
-import com.noidvideo.editor.ui.theme.NoidSurface
 import com.noidvideo.editor.ui.theme.NoidSurfaceHigh
-import com.noidvideo.editor.ui.theme.NoidText
 import com.noidvideo.editor.ui.theme.NoidTextDim
 
 /**
- * Timeline real com waveform, marcadores de beat e playhead arrastável.
+ * Timeline real: régua de tempo, blocos de clipe, waveform, beats e playhead.
  */
 @Composable
 fun WaveformTimeline(
     waveform: FloatArray,
     beatTimesMs: List<Long>,
+    clips: List<TimelineClip>,
     totalDurationMs: Long,
     playheadMs: Long,
     onSeek: (Long) -> Unit,
@@ -67,7 +65,7 @@ fun WaveformTimeline(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(72.dp)
+                .height(110.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(NoidSurfaceHigh)
                 .pointerInput(totalDurationMs) {
@@ -83,39 +81,91 @@ fun WaveformTimeline(
                     }
                 }
         ) {
-            Canvas(modifier = Modifier.fillMaxWidth().height(72.dp)) {
+            Canvas(modifier = Modifier.fillMaxWidth().height(110.dp)) {
                 val w = size.width
                 val h = size.height
-                val midY = h / 2f
+                val rulerH = 16f
+                val clipH = 22f
+                val waveTop = rulerH + clipH + 4f
+                val waveH = h - waveTop
+                val midY = waveTop + waveH / 2f
 
-                // Waveform
+                // --- Régua de tempo ---
+                if (totalDurationMs > 0) {
+                    val stepMs = pickRulerStep(totalDurationMs)
+                    var t = 0L
+                    while (t <= totalDurationMs) {
+                        val x = (t.toFloat() / totalDurationMs) * w
+                        drawLine(
+                            color = NoidTextDim.copy(alpha = 0.4f),
+                            start = Offset(x, 0f),
+                            end = Offset(x, rulerH),
+                            strokeWidth = 1f
+                        )
+                        t += stepMs
+                    }
+                }
+
+                // --- Blocos de clipe ---
+                if (totalDurationMs > 0 && clips.isNotEmpty()) {
+                    val palette = listOf(
+                        Color(0xFF2E7D32), Color(0xFF1565C0), Color(0xFF6A1B9A),
+                        Color(0xFFC62828), Color(0xFFEF6C00), Color(0xFF00838F)
+                    )
+                    var acc = 0L
+                    clips.forEachIndexed { idx, clip ->
+                        val startX = (acc.toFloat() / totalDurationMs) * w
+                        val endX = ((acc + clip.trimmedDurationMs).toFloat() / totalDurationMs) * w
+                        val blockW = (endX - startX).coerceAtLeast(1f)
+                        drawRect(
+                            color = palette[idx % palette.size].copy(alpha = 0.85f),
+                            topLeft = Offset(startX, rulerH + 2f),
+                            size = Size(blockW - 1f, clipH)
+                        )
+                        // Separador entre clipes
+                        drawLine(
+                            color = Color.Black.copy(alpha = 0.6f),
+                            start = Offset(endX, rulerH + 2f),
+                            end = Offset(endX, rulerH + 2f + clipH),
+                            strokeWidth = 1.5f
+                        )
+                        acc += clip.trimmedDurationMs
+                    }
+                }
+
+                // --- Waveform espelhada ---
                 if (waveform.isNotEmpty()) {
                     val barW = w / waveform.size
                     for (i in waveform.indices) {
                         val amp = waveform[i]
-                        val barH = (amp * h * 0.85f).coerceAtLeast(1f)
+                        val barH = (amp * waveH * 0.45f).coerceAtLeast(0.5f)
                         drawRect(
-                            color = NoidGreen.copy(alpha = 0.55f),
-                            topLeft = Offset(i * barW, midY - barH / 2f),
-                            size = Size(barW * 0.7f, barH)
+                            color = NoidGreen.copy(alpha = 0.75f),
+                            topLeft = Offset(i * barW, midY - barH),
+                            size = Size(barW * 0.65f, barH)
+                        )
+                        drawRect(
+                            color = NoidGreen.copy(alpha = 0.45f),
+                            topLeft = Offset(i * barW, midY),
+                            size = Size(barW * 0.65f, barH)
                         )
                     }
                 }
 
-                // Marcadores de beat
+                // --- Beats ---
                 if (totalDurationMs > 0) {
                     for (beat in beatTimesMs) {
                         val x = (beat.toFloat() / totalDurationMs) * w
                         drawLine(
-                            color = Color(0xFFFFD54F).copy(alpha = 0.7f),
-                            start = Offset(x, 0f),
+                            color = Color(0xFFFFD54F).copy(alpha = 0.55f),
+                            start = Offset(x, waveTop),
                             end = Offset(x, h),
-                            strokeWidth = 1.5f
+                            strokeWidth = 1f
                         )
                     }
                 }
 
-                // Playhead
+                // --- Playhead ---
                 if (totalDurationMs > 0) {
                     val px = (playheadMs.toFloat() / totalDurationMs) * w
                     drawLine(
@@ -132,6 +182,16 @@ fun WaveformTimeline(
                 }
             }
         }
+    }
+}
+
+private fun pickRulerStep(totalMs: Long): Long {
+    val sec = totalMs / 1000
+    return when {
+        sec <= 10 -> 1000L
+        sec <= 30 -> 5000L
+        sec <= 60 -> 10000L
+        else -> 30000L
     }
 }
 

@@ -4,31 +4,33 @@ import android.graphics.Matrix
 import androidx.media3.common.util.Size
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.MatrixTransformation
+import kotlin.math.sin
 
 /**
- * Glitch RGB: desloca os canais vermelho e azul horizontalmente,
- * criando o efeito de aberração cromática de vídeos esportivos radicais.
- *
- * Roda na GPU via MatrixTransformation (Adreno 740 no S23 Ultra).
+ * Glitch RGB: pulsos de deslocamento horizontal ao longo de TODO o clipe.
+ * Não é só no início — pulsa a cada ~400ms, criando o efeito de sinal instável.
  */
 @UnstableApi
 class GlitchRgbEffect(
     private val clipStartUs: Long,
-    private val durationMs: Long = 220L,
-    private val intensity: Float = 0.035f
+    private val clipDurationMs: Long,
+    private val intensity: Float = 0.06f
 ) : MatrixTransformation {
 
     override fun getMatrix(presentationTimeUs: Long): Matrix {
         val elapsedMs = (presentationTimeUs - clipStartUs) / 1000f
-        val t = (elapsedMs / durationMs).coerceIn(0f, 1f)
-        // Decai rápido: glitch forte no início, some
-        val decay = (1f - t) * (1f - t)
-        val shift = intensity * decay
+        if (elapsedMs < 0f || elapsedMs > clipDurationMs) {
+            return Matrix()
+        }
+
+        // Pulso a cada 400ms — senoide rápida
+        val pulse = sin(elapsedMs * 0.025f)
+        // Só pulsa quando o seno está alto (glitch intermitente)
+        val active = if (pulse > 0.3f) pulse else 0f
+        val shift = intensity * active
 
         return Matrix().apply {
-            // Deslocamento horizontal alternado (simula split de canais)
-            val dir = if ((elapsedMs.toInt() / 40) % 2 == 0) 1f else -1f
-            setTranslate(shift * dir, 0f)
+            setTranslate(shift, 0f)
         }
     }
 

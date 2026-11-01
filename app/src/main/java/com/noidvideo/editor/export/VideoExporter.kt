@@ -129,13 +129,14 @@ class VideoExporter(private val context: Context) {
 
         if (isVideo) {
             // Efeitos de transição — todos rodam na GPU, antes do Presentation
+            val clipDurMs = clip.trimmedDurationMs
             when (clip.transition) {
                 TransitionKind.CUT_ON_BEAT ->
                     videoEffects.add(PunchZoomEffect(clipStartUs = clipStartUs))
                 TransitionKind.GLITCH_RGB ->
-                    videoEffects.add(GlitchRgbEffect(clipStartUs = clipStartUs))
+                    videoEffects.add(GlitchRgbEffect(clipStartUs = clipStartUs, clipDurationMs = clipDurMs))
                 TransitionKind.SHAKE ->
-                    videoEffects.add(ShakeEffect(clipStartUs = clipStartUs))
+                    videoEffects.add(ShakeEffect(clipStartUs = clipStartUs, clipDurationMs = clipDurMs))
                 TransitionKind.ZOOM_BLUR ->
                     videoEffects.add(ZoomBlurEffect(clipStartUs = clipStartUs))
                 TransitionKind.FLASH ->

@@ -121,6 +121,7 @@ fun EditorScreen(
                 WaveformTimeline(
                     waveform = state.waveform,
                     beatTimesMs = state.beatMap?.beatTimesMs ?: emptyList(),
+                    clips = state.timeline.videoClips,
                     totalDurationMs = totalMs,
                     playheadMs = state.playheadMs,
                     onSeek = { viewModel.seekTo(it) }
