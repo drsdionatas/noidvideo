@@ -10,6 +10,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.effect.Presentation
+import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
@@ -127,6 +128,14 @@ class VideoExporter(private val context: Context) {
                     Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP
                 )
             )
+            // Zoom Punch: impacto de corte esportivo
+            if (clip.transition == TransitionKind.CUT_ON_BEAT) {
+                videoEffects.add(
+                    ScaleAndRotateTransformation.Builder()
+                        .setScale(1.12f, 1.12f)
+                        .build()
+                )
+            }
         }
 
         // Volume por clipe (GainProcessor)
