@@ -1,6 +1,7 @@
 package com.noidvideo.editor.ui
 
 import android.app.Application
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,13 +11,17 @@ import com.noidvideo.editor.engine.FilterPreset
 import com.noidvideo.editor.engine.Timeline
 import com.noidvideo.editor.engine.TimelineEngine
 import com.noidvideo.editor.engine.TransitionKind
+import com.noidvideo.editor.filters.FilterPreviewRenderer
 import com.noidvideo.editor.media.AudioImporter
+import com.noidvideo.editor.media.ThumbnailLoader
 import com.noidvideo.editor.media.VideoImporter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class EditorUiState(
     val timeline: Timeline = Timeline(),
@@ -25,7 +30,9 @@ data class EditorUiState(
     val beatMap: BeatMap? = null,
     val beatSyncBusy: Boolean = false,
     val isExporting: Boolean = false,
-    val message: String? = null
+    val message: String? = null,
+    val filterPreviews: Map<FilterPreset, Bitmap?> = emptyMap(),
+    val previewsLoading: Boolean = false
 )
 
 class EditorViewModel(app: Application) : AndroidViewModel(app) {
@@ -38,6 +45,7 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
     fun addVideos(uris: List<Uri>) {
         val clips = VideoImporter.toClips(getApplication(), uris, _state.value.timeline.totalDurationMs)
         _state.update { it.copy(timeline = it.timeline.copy(clips = it.timeline.clips + clips)) }
+        loadFilterPreviews()
     }
 
     fun addAudio(uri: Uri) {
@@ -48,6 +56,47 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
     fun selectClip(id: String?) = _state.update { it.copy(selectedClipId = id) }
 
     fun setPlayhead(ms: Long) = _state.update { it.copy(playheadMs = ms) }
+
+    /**
+     * Gera as miniaturas de todos os presets a partir do primeiro frame
+     * do primeiro clipe de vídeo da timeline.
+     */
+    fun loadFilterPreviews() {
+        val firstVideo = _state.value.timeline.videoClips.firstOrNull() ?: return
+        if (_state.value.previewsLoading) return
+
+        viewModelScope.launch {
+            _state.update { it.copy(previewsLoading = true) }
+            val ctx = getApplication<Application>()
+
+            val frame = withContext(Dispatchers.IO) {
+                ThumbnailLoader.load(ctx, firstVideo.uri, firstVideo.startInSourceMs + 500L)
+            }
+
+            if (frame == null) {
+                _state.update { it.copy(previewsLoading = false) }
+                return@launch
+            }
+
+            val previews = withContext(Dispatchers.Default) {
+                FilterPreset.entries.associateWith { preset ->
+                    runCatching { FilterPreviewRenderer.render(frame, preset) }.getOrNull()
+                }
+            }
+
+            _state.update { it.copy(filterPreviews = previews, previewsLoading = false) }
+        }
+    }
+
+    fun setFilter(preset: FilterPreset) {
+        val id = _state.value.selectedClipId ?: return
+        _state.update { s ->
+            val clips = s.timeline.clips.map { clip ->
+                if (clip.id != id) clip else clip.copy(filter = preset)
+            }
+            s.copy(timeline = s.timeline.copy(clips = clips))
+        }
+    }
 
     fun splitAtPlayhead() {
         val current = _state.value
@@ -70,18 +119,6 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
             val clips = s.timeline.clips.map { clip ->
                 if (clip.id != id) clip
                 else clip.copy(speed = speeds[(speeds.indexOf(clip.speed) + 1) % speeds.size])
-            }
-            s.copy(timeline = s.timeline.copy(clips = clips))
-        }
-    }
-
-    fun cycleFilter() {
-        val id = _state.value.selectedClipId ?: return
-        val presets = FilterPreset.entries
-        _state.update { s ->
-            val clips = s.timeline.clips.map { clip ->
-                if (clip.id != id) clip
-                else clip.copy(filter = presets[(presets.indexOf(clip.filter) + 1) % presets.size])
             }
             s.copy(timeline = s.timeline.copy(clips = clips))
         }
