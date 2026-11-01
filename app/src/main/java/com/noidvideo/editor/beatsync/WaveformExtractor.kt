@@ -43,7 +43,7 @@ object WaveformExtractor {
             codec.configure(format, null, null, 0)
             codec.start()
 
-            val amplitudes = ArrayList<Float>(4096)
+            val amplitudes = ArrayList<Float>(targetSamples * 4)
             val info = MediaCodec.BufferInfo()
             var sawInputEOS = false
             var sawOutputEOS = false
@@ -71,7 +71,21 @@ object WaveformExtractor {
                     val shorts = ShortArray(info.size / 2)
                     outBuf.asShortBuffer().get(shorts)
                     for (s in shorts) {
-                        amplitudes.add(abs(s.toInt()) / 32768f)
+                        val amp = abs(s.toInt()) / 32768f
+                        if (amplitudes.size < targetSamples * 8) {
+                            amplitudes.add(amp)
+                        } else {
+                            // reduz pela metade quando enche
+                            val half = ArrayList<Float>(targetSamples * 4)
+                            var i = 0
+                            while (i < amplitudes.size - 1) {
+                                half.add(maxOf(amplitudes[i], amplitudes[i + 1]))
+                                i += 2
+                            }
+                            amplitudes.clear()
+                            amplitudes.addAll(half)
+                            amplitudes.add(amp)
+                        }
                     }
                     codec.releaseOutputBuffer(outIdx, false)
                     if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) {

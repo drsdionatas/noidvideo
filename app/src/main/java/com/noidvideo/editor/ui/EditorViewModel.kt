@@ -163,7 +163,9 @@ class EditorViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             _state.update { it.copy(beatSyncBusy = true, message = null) }
             val map = BeatDetector.analyze(getApplication(), audioUri)
-            val wave = WaveformExtractor.extract(getApplication(), audioUri)
+            val wave = withContext(Dispatchers.IO) {
+                WaveformExtractor.extract(getApplication(), audioUri)
+            }
             _state.update { it.copy(waveform = wave) }
             if (map == null) {
                 _state.update { it.copy(beatSyncBusy = false, message = "Não foi possível detectar a batida") }
