@@ -123,8 +123,8 @@ class VideoExporter(private val context: Context) {
             // Aplica resolução/proporção escolhida no export
             videoEffects.add(
                 Presentation.createForWidthAndHeight(
-                    config.resolution.width,
-                    config.resolution.height,
+                    config.outWidth,
+                    config.outHeight,
                     Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP
                 )
             )

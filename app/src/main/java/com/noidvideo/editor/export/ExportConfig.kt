@@ -21,4 +21,22 @@ data class ExportConfig(
     val videoBitrate: Int = 100_000_000,
     val audioBitrate: Int = 320_000,
     val useHevc: Boolean = true
-)
+) {
+    /** Largura real considerando o aspect escolhido. */
+    val outWidth: Int
+        get() = when (aspect) {
+            Aspect.PORTRAIT_9_16 -> (resolution.height * 9 / 16)
+            Aspect.LANDSCAPE_16_9 -> resolution.width
+            Aspect.SQUARE_1_1 -> resolution.height
+            Aspect.VERTICAL_4_5 -> (resolution.height * 4 / 5)
+        }
+
+    /** Altura real considerando o aspect escolhido. */
+    val outHeight: Int
+        get() = when (aspect) {
+            Aspect.PORTRAIT_9_16 -> resolution.height
+            Aspect.LANDSCAPE_16_9 -> resolution.height
+            Aspect.SQUARE_1_1 -> resolution.height
+            Aspect.VERTICAL_4_5 -> resolution.height
+        }
+}
